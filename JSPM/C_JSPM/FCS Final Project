@@ -1,0 +1,223 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
+struct Student {
+    int roll_no;
+    char name[50];
+    float percent;
+};
+
+// FUNCTIONS
+void addRecord();
+void viewRecords();
+void searchRecord();
+void deleteRecord();
+void updateRecord(); // <--- NEW FUNCTION ADDED
+
+int main() {
+    int choice;
+
+    while (1) {
+        printf("\n____________________________________________\n");
+        printf("____ STUDENT RECORD MANAGEMENT SYSTEM ____\n");
+        printf("____________________________________________\n");
+        printf("__ 1. Add Student Record                 __\n");
+        printf("__ 2. View All Records                   __\n");
+        printf("__ 3. Search Student by Roll No          __\n");
+        printf("__ 4. Delete Student Record              __\n");
+        printf("__ 5. Update Student Record              __\n"); // <--- NEW OPTION
+        printf("__ 6. Exit                               __\n");
+        printf("____________________________________________\n");
+        printf(">> Enter your choice: ");
+        scanf("%d", &choice);
+
+        switch (choice) {
+            case 1: addRecord(); break;
+            case 2: viewRecords(); break;
+            case 3: searchRecord(); break;
+            case 4: deleteRecord(); break;
+            case 5: updateRecord(); break; // <--- NEW CASE
+            case 6:
+                printf("\n____________________________________________\n");
+                printf("____ Exiting Program... Goodbye! ____\n");
+                printf("____________________________________________\n");
+                exit(0);
+            default:
+                printf("\n____ Invalid Choice! Try Again. ____\n");
+        }
+    }
+}
+
+void addRecord() {
+    struct Student s;
+    FILE *fp = fopen("students.dat", "ab");
+
+    if (!fp) {
+        printf("\n____ File Error! ____\n");
+        return;
+    }
+
+    printf("\n____________________________________________\n");
+    printf("____ ADD NEW STUDENT RECORD ____\n");
+    printf("____________________________________________\n");
+
+    printf(">> Roll No       : ");
+    scanf("%d", &s.roll_no);
+    while (getchar() != '\n'); // Clear buffer
+
+    printf(">> Name          : ");
+    gets(s.name);
+
+    printf(">> Percentage    : ");
+    scanf("%f", &s.percent);
+
+    fwrite(&s, sizeof(struct Student), 1, fp);
+    fclose(fp);
+
+    printf("____ Record Added Successfully! ____\n");
+}
+
+void viewRecords() {
+    struct Student s;
+    FILE *fp = fopen("students.dat", "rb");
+
+    if (!fp) {
+        printf("\n____ No Records Found! ____\n");
+        return;
+    }
+
+    printf("\n____________________________________________\n");
+    printf("____ ALL STUDENT RECORDS ____\n");
+    printf("____________________________________________\n");
+    printf("____ %-8s | %-25s | %-8s ____\n", "RollNo", "Name", "Percent");
+    printf("____________________________________________\n");
+
+    while (fread(&s, sizeof(struct Student), 1, fp)) {
+        printf("____ %-8d | %-25s | %-7.2f ____\n",
+               s.roll_no, s.name, s.percent);
+    }
+
+    printf("____________________________________________\n");
+    fclose(fp);
+}
+
+void searchRecord() {
+    struct Student s;
+    FILE *fp = fopen("students.dat", "rb");
+    int roll, found = 0;
+
+    if (!fp) {
+        printf("\n____ No Records Found! ____\n");
+        return;
+    }
+
+    printf("\n____________________________________________\n");
+    printf(">> Enter Roll No to Search: ");
+    scanf("%d", &roll);
+
+    while (fread(&s, sizeof(struct Student), 1, fp)) {
+        if (s.roll_no == roll) {
+            printf("\n____________________________________________\n");
+            printf("____ RECORD FOUND ____\n");
+            printf(">> Roll No    : %d\n", s.roll_no);
+            printf(">> Name       : %s\n", s.name);
+            printf(">> Percentage : %.2f%%\n", s.percent);
+            printf("____________________________________________\n");
+            found = 1;
+            break;
+        }
+    }
+
+    if (!found) {
+        printf("____ Student Not Found! ____\n");
+    }
+
+    fclose(fp);
+}
+
+void deleteRecord() {
+    struct Student s;
+    FILE *fp = fopen("students.dat", "rb");
+    FILE *temp = fopen("temp.dat", "wb");
+    int roll, found = 0;
+
+    if (!fp || !temp) {
+        printf("\n____ No Records To Delete! ____\n");
+        return;
+    }
+
+    printf("\n____________________________________________\n");
+    printf(">> Enter Roll No to Delete: ");
+    scanf("%d", &roll);
+
+    while (fread(&s, sizeof(struct Student), 1, fp)) {
+        if (s.roll_no == roll) {
+            found = 1;
+            printf("____ Record Deleted Successfully! ____\n");
+        } else {
+            fwrite(&s, sizeof(struct Student), 1, temp);
+        }
+    }
+
+    fclose(fp);
+    fclose(temp);
+
+    if (found) {
+        remove("students.dat");
+        rename("temp.dat", "students.dat");
+    } else {
+        printf("____ Record Not Found! ____\n");
+        remove("temp.dat");
+    }
+}
+
+// ---------------------------------------------------------
+// NEW UPDATE FUNCTION
+// ---------------------------------------------------------
+void updateRecord() {
+    struct Student s;
+    FILE *fp = fopen("students.dat", "rb");
+    FILE *temp = fopen("temp.dat", "wb");
+    int roll, found = 0;
+
+    if (!fp || !temp) {
+        printf("\n____ No Records To Update! ____\n");
+        return;
+    }
+
+    printf("\n____________________________________________\n");
+    printf(">> Enter Roll No to Update: ");
+    scanf("%d", &roll);
+
+    while (fread(&s, sizeof(struct Student), 1, fp)) {
+        if (s.roll_no == roll) {
+            found = 1;
+            printf("\n____ RECORD FOUND! ENTER NEW DATA ____\n");
+            
+            // We keep the Roll No same, update Name and Percent
+            printf(">> Enter New Name      : ");
+            while (getchar() != '\n'); // Clear buffer before gets
+            gets(s.name);
+
+            printf(">> Enter New Percentage: ");
+            scanf("%f", &s.percent);
+
+            fwrite(&s, sizeof(struct Student), 1, temp);
+            printf("____ Record Updated Successfully! ____\n");
+        } else {
+            fwrite(&s, sizeof(struct Student), 1, temp);
+        }
+    }
+
+    fclose(fp);
+    fclose(temp);
+
+    if (found) {
+        remove("students.dat");
+        rename("temp.dat", "students.dat");
+    } else {
+        printf("____ Record Not Found! ____\n");
+        remove("temp.dat");
+    }
+}
